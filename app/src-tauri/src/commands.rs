@@ -478,6 +478,110 @@ pub async fn open_item(core: State<'_, Core>, app: AppHandle, id: String) -> Cmd
 }
 
 #[tauri::command]
+pub async fn preview_item(core: State<'_, Core>, app: AppHandle, id: String) -> CmdResult<()> {
+    let item = core.item(&id).ok_or("unknown item")?;
+    let path = item.path();
+
+    // 1. If download is finished and the final file exists, open it directly.
+    if path.exists() {
+        return app
+            .opener()
+            .open_path(path.to_string_lossy(), None::<&str>)
+            .map_err(err);
+    }
+
+    // 2. Check if an active direct download part file exists (<final>.prismpart)
+    let mut part_path_buf = path.as_os_str().to_os_string();
+    part_path_buf.push(".prismpart");
+    let part_path = PathBuf::from(part_path_buf);
+
+    if part_path.exists() {
+        let meta = std::fs::metadata(&part_path).map_err(err)?;
+        if meta.len() < 32 * 1024 && item.downloaded < 32 * 1024 {
+            return Err("Download has not received enough data yet to preview. Please wait a few moments.".into());
+        }
+
+        // On Windows (and elsewhere), opening .prismpart directly won't trigger the system media player.
+        // We create a hard link with the proper media extension in the same directory (shares disk clusters, 0 I/O).
+        let file_stem = path.file_stem().unwrap_or_default().to_string_lossy();
+        let file_ext = path.extension().unwrap_or_default().to_string_lossy();
+        let preview_name = if file_ext.is_empty() {
+            format!(".preview_{}.mp4", file_stem)
+        } else {
+            format!(".preview_{}.{}", file_stem, file_ext)
+        };
+        let preview_path = item.save_dir.join(preview_name);
+
+        if preview_path.exists() {
+            if std::fs::remove_file(&preview_path).is_err() {
+                // If currently open/locked in a media player, re-open it
+                return app
+                    .opener()
+                    .open_path(preview_path.to_string_lossy(), None::<&str>)
+                    .map_err(err);
+            }
+        }
+
+        let target_to_open = match std::fs::hard_link(&part_path, &preview_path) {
+            Ok(()) => preview_path,
+            Err(_) => {
+                #[cfg(windows)]
+                {
+                    if std::os::windows::fs::symlink_file(&part_path, &preview_path).is_ok() {
+                        preview_path
+                    } else {
+                        part_path
+                    }
+                }
+                #[cfg(not(windows))]
+                {
+                    if std::os::unix::fs::symlink(&part_path, &preview_path).is_ok() {
+                        preview_path
+                    } else {
+                        part_path
+                    }
+                }
+            }
+        };
+
+        return app
+            .opener()
+            .open_path(target_to_open.to_string_lossy(), None::<&str>)
+            .map_err(err);
+    }
+
+    // 3. Check if it is a media stream folder (<final>.prismpart.d)
+    let mut part_d_buf = path.as_os_str().to_os_string();
+    part_d_buf.push(".prismpart.d");
+    let part_d_path = PathBuf::from(part_d_buf);
+
+    if part_d_path.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(&part_d_path) {
+            let mut segments: Vec<PathBuf> = entries
+                .filter_map(|e| e.ok())
+                .map(|e| e.path())
+                .filter(|p| {
+                    p.is_file()
+                        && !p.to_string_lossy().ends_with(".tmp")
+                        && !p.to_string_lossy().ends_with(".part")
+                })
+                .collect();
+            segments.sort();
+
+            if let Some(first_seg) = segments.first() {
+                return app
+                    .opener()
+                    .open_path(first_seg.to_string_lossy(), None::<&str>)
+                    .map_err(err);
+            }
+        }
+        return Err("Media stream segments are still buffering. Please wait a moment.".into());
+    }
+
+    Err("Download file or preview not found on disk yet.".into())
+}
+
+#[tauri::command]
 pub async fn reveal_item(core: State<'_, Core>, app: AppHandle, id: String) -> CmdResult<()> {
     let item = core.item(&id).ok_or("unknown item")?;
     let path = item.path();

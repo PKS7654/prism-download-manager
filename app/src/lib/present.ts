@@ -199,3 +199,14 @@ export function middleTruncate(name: string, max = 48): string {
   const tail = ext ? ext.length + 6 : 8;
   return `${name.slice(0, max - tail - 1)}…${name.slice(name.length - tail)}`;
 }
+
+const PLAYABLE_EXTENSIONS = /\.(mp4|mkv|webm|avi|mov|wmv|flv|m4v|3gp|ts|m2ts|mp3|m4a|aac|flac|wav|ogg|opus)$/i;
+
+export function isPlayable(item?: Pick<DownloadItem, "fileName" | "kind" | "category" | "media"> | null): boolean {
+  if (!item) return false;
+  if (item.category === "video" || item.category === "audio") return true;
+  if (item.kind === "video" || item.kind === "hls" || item.kind === "dash") return true;
+  if (item.media != null) return true;
+  return PLAYABLE_EXTENSIONS.test(item.fileName);
+}
+

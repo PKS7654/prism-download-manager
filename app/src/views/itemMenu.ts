@@ -3,7 +3,7 @@
 import { actions } from "../lib/actions";
 import { t } from "../lib/i18n";
 import { GIF_MAX_SECONDS, PRESETS, presetLabel, quickTargets, TARGET_NAMES } from "../lib/media";
-import { canPause, canResume, displayName } from "../lib/present";
+import { canPause, canResume, displayName, isPlayable } from "../lib/present";
 import { useApp } from "../lib/store";
 import { mediaPath, openTools, quickConvert } from "../lib/tools";
 import { type MenuEntry, useUi } from "../lib/ui";
@@ -67,6 +67,15 @@ export function itemMenu(ids: string[]): MenuEntry[] {
       : [];
 
   return [
+    ...(one && isPlayable(one)
+      ? [
+          {
+            label: one.status === "completed" ? t("Play") : t("Play (Preview)"),
+            icon: "play" as const,
+            onSelect: () => actions.preview(one.id),
+          },
+        ]
+      : []),
     { label: t("Open"), icon: "open-file", kbd: "Enter", disabled: !done, onSelect: () => one && actions.open(one.id) },
     { label: t("Show in folder"), icon: "folder-open", disabled: !one, onSelect: () => one && actions.reveal(one.id) },
     ...tools,

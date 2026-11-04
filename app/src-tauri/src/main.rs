@@ -214,6 +214,7 @@ fn main() {
             commands::update_item,
             commands::item_details,
             commands::open_item,
+            commands::preview_item,
             commands::reveal_item,
             commands::open_path,
             commands::assign_to_queue,
