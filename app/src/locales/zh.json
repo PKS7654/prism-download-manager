@@ -1129,5 +1129,11 @@
   "What's inside a ZIP": "查看 ZIP 内容",
   "The “Download file” window shows the files in a ZIP before you download it, and can download just one of them.": "“下载文件”窗口会在下载前显示 ZIP 中的文件，并且可以只下载其中一个。",
   "Finished means finished": "完成就是完成",
-  "A download that finished while the window was open sometimes still looked like it was downloading.": "修复了窗口打开时已完成的下载有时仍显示为正在下载的问题。"
+  "A download that finished while the window was open sometimes still looked like it was downloading.": "修复了窗口打开时已完成的下载有时仍显示为正在下载的问题。",
+  "Playback Buffer": "播放缓冲",
+  "Play": "播放",
+  "Play (Smooth playback ready)": "播放 (流畅播放就绪)",
+  "Buffering: {pct}% ready (~{secs}s left)": "正在缓冲: {pct}% 就绪 (约剩 {secs} 秒)",
+  "Buffering: {pct}% ready": "正在缓冲: {pct}% 就绪",
+  "Play (Preview)": "播放 (预览)"
 }

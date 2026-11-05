@@ -263,8 +263,12 @@ function SideFooter() {
   useEffect(() => {
     const load = () => void api.integrationStatus().then(setStatus, () => setStatus(null));
     load();
-    const timer = window.setInterval(load, 30_000);
-    return () => window.clearInterval(timer);
+    const timer = window.setInterval(load, 15_000);
+    window.addEventListener("focus", load);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", load);
+    };
   }, []);
   const ok = !!status?.extensionConnected;
   const resolved = document.documentElement.dataset.theme;

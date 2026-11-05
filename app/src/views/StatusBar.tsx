@@ -40,8 +40,12 @@ export function StatusBar() {
       void api.integrationStatus().then((s) => setIntegrationOk(!!s.extensionConnected || s.browsers.some((b) => b.registered)), () => setIntegrationOk(null));
     };
     load();
-    const timer = window.setInterval(load, 60_000);
-    return () => window.clearInterval(timer);
+    const timer = window.setInterval(load, 30_000);
+    window.addEventListener("focus", load);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", load);
+    };
   }, [dir, queues]);
 
   const running = queues.filter((q) => q.running);
@@ -56,13 +60,13 @@ export function StatusBar() {
       </span>
       <span className="sb">{tr("{active} active · {queued} queued", { active: <b>{c.active}</b>, queued: <b>{c.queued}</b> })}</span>
       {running.length > 0 && (
-        <span className="sb">
+        <span className="sb sb--queues">
           <Icon name="queue" size={12} strokeWidth={2} />
           {t("{queues} running", { queues: running.map((q) => displayName(q.name)).join(", ") })}
         </span>
       )}
       {upcoming && upcomingQueue && (
-        <span className="sb" data-tip={t("Next scheduled start")}>
+        <span className="sb sb--scheduled" data-tip={t("Next scheduled start")}>
           <Icon name="status-scheduled" size={12} strokeWidth={2} />
           {tr("{queue} at {time}", { queue: upcomingQueue.name, time: <b>{upcoming[1]?.slice(-5)}</b> })}
         </span>
