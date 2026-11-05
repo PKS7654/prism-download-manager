@@ -30,6 +30,7 @@ ureq = { version = "3", default-features = false, optional = true }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
+windows-sys = { version = "0.61", features = ["Win32_System_Console"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }
