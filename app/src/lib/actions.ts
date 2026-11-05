@@ -10,7 +10,6 @@ import { attempt, toast, useUi } from "./ui";
 import { copyText } from "./win";
 
 const items = (ids: string[]) => ids.map((id) => useApp.getState().items[id]).filter(Boolean);
-const lastPreviewClick: Record<string, number> = {};
 
 export const actions = {
   resume: (ids: string[]) => {
@@ -60,19 +59,14 @@ export const actions = {
 
   open: (id: string) => void attempt(api.openItem(id), t("Could not open the file")),
   preview: async (id: string) => {
-    const now = Date.now();
-    const last = lastPreviewClick[id] || 0;
-    const force = now - last < 6000;
-    lastPreviewClick[id] = now;
-
     try {
-      await api.previewItem(id, force);
+      await api.previewItem(id);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      toast(t("Play (Preview)"), {
-        kind: force ? "error" : "info",
+      toast(t("Playback Buffer"), {
+        kind: "info",
         body: msg,
-        ms: 5000,
+        ms: 6000,
       });
     }
   },

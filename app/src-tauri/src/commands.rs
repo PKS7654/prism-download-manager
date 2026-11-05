@@ -482,7 +482,7 @@ pub async fn preview_item(
     core: State<'_, Core>,
     app: AppHandle,
     id: String,
-    force: Option<bool>,
+    _force: Option<bool>,
 ) -> CmdResult<()> {
     let item = core.item(&id).ok_or("unknown item")?;
     let path = item.path();
@@ -531,43 +531,18 @@ pub async fn preview_item(
             .map(|p| p.speed)
             .unwrap_or(0);
 
-        let duration_secs = item
-            .media
-            .as_ref()
-            .and_then(|m| m.duration)
-            .map(|d| d as f64)
-            .unwrap_or_else(|| {
-                if file_size > 0 {
-                    (file_size as f64 / 350_000.0).clamp(60.0, 7200.0)
-                } else {
-                    600.0
-                }
-            });
-
-        let bitrate = if duration_secs > 0.0 && file_size > 0 {
-            file_size as f64 / duration_secs
-        } else {
-            350_000.0 // 350 KB/s ~ 2.8 Mbps
-        };
-
-        // Minimum required contiguous buffer to prevent playback stall
+        // Minimum required contiguous buffer to guarantee continuous non-freezing preview.
+        // For video files: require at least 2.0% of the total file size or 35 MB (whichever is larger),
+        // capped at a reasonable 250 MB.
         let min_required: u64 = if file_size > 0 {
-            if speed as f64 >= bitrate {
-                // Speed exceeds bitrate: only need 15s jitter buffer (or min 15 MB)
-                (bitrate * 15.0).max(15.0 * 1024.0 * 1024.0) as u64
-            } else {
-                // Speed is slower than bitrate: need to buffer deficit before playing
-                let deficit = file_size as f64 * (1.0 - (speed as f64 / bitrate));
-                let safety = bitrate * 15.0;
-                let needed = (deficit + safety).min(file_size as f64 * 0.95);
-                needed.max(15.0 * 1024.0 * 1024.0) as u64
-            }
+            let pct_bytes = (file_size as f64 * 0.02) as u64; // 2% minimum
+            pct_bytes.clamp(35 * 1024 * 1024, 250 * 1024 * 1024).min(file_size)
         } else {
-            15 * 1024 * 1024
+            25 * 1024 * 1024
         };
 
-        let force_play = force.unwrap_or(false);
-        if !force_play && contiguous_head < min_required {
+        // Strict buffer enforcement: DO NOT allow early playback bypass
+        if contiguous_head < min_required {
             let buffered_mb = contiguous_head as f64 / (1024.0 * 1024.0);
             let needed_mb = min_required as f64 / (1024.0 * 1024.0);
             let wait_secs = if speed > 0 {
@@ -575,66 +550,47 @@ pub async fn preview_item(
             } else {
                 0
             };
-            let pct = ((contiguous_head as f64 / min_required as f64) * 100.0).min(99.0) as u64;
+            let req_pct = if file_size > 0 {
+                (min_required as f64 / file_size as f64 * 100.0).clamp(0.1, 100.0)
+            } else {
+                100.0
+            };
+            let curr_pct = if file_size > 0 {
+                contiguous_head as f64 / file_size as f64 * 100.0
+            } else {
+                0.0
+            };
 
             if wait_secs > 0 {
                 return Err(format!(
-                    "Buffering: {}% ({:.1} MB / {:.1} MB ready, ~{}s left). Click Play again to preview early.",
-                    pct, buffered_mb, needed_mb, wait_secs
+                    "Playback locked: Continuous preview requires {:.1}% ({:.1} MB). Currently at {:.1}% ({:.1} MB). Ready in ~{}s.",
+                    req_pct, needed_mb, curr_pct, buffered_mb, wait_secs
                 ));
             } else {
                 return Err(format!(
-                    "Buffering: {}% ({:.1} MB / {:.1} MB ready). Click Play again to preview early.",
-                    pct, buffered_mb, needed_mb
+                    "Playback locked: Continuous preview requires {:.1}% ({:.1} MB). Currently at {:.1}% ({:.1} MB). Please wait for buffer.",
+                    req_pct, needed_mb, curr_pct, buffered_mb
                 ));
             }
         }
 
-        // Buffer is sufficient (or user force-played): create hard link and launch player
-        let file_stem = path.file_stem().unwrap_or_default().to_string_lossy();
-        let file_ext = path.extension().unwrap_or_default().to_string_lossy();
-        let preview_name = if file_ext.is_empty() {
-            format!(".preview_{}.mp4", file_stem)
-        } else {
-            format!(".preview_{}.{}", file_stem, file_ext)
-        };
-        let preview_path = item.save_dir.join(preview_name);
+        // Buffer is sufficient: stream via loopback HTTP server.
+        // This solves two major issues:
+        // 1. Zero disk duplication: does NOT create any .preview_* files in Downloads folder.
+        // 2. Real-time progressive frames: media player streams via HTTP and continuously buffers
+        //    newly downloaded frames without locking to a static file EOF.
+        let port = crate::preview_server::get_server_port();
+        let filename = path.file_name().unwrap_or_default().to_string_lossy();
+        let stream_url = format!("http://127.0.0.1:{}/stream/{}/{}", port, id, filename);
 
-        if preview_path.exists() {
-            if std::fs::remove_file(&preview_path).is_err() {
-                // If currently open/locked in a media player, re-open it
-                return app
-                    .opener()
-                    .open_path(preview_path.to_string_lossy(), None::<&str>)
-                    .map_err(err);
-            }
-        }
-
-        let target_to_open = match std::fs::hard_link(&part_path, &preview_path) {
-            Ok(()) => preview_path,
-            Err(_) => {
-                #[cfg(windows)]
-                {
-                    if std::os::windows::fs::symlink_file(&part_path, &preview_path).is_ok() {
-                        preview_path
-                    } else {
-                        part_path
-                    }
-                }
-                #[cfg(not(windows))]
-                {
-                    if std::os::unix::fs::symlink(&part_path, &preview_path).is_ok() {
-                        preview_path
-                    } else {
-                        part_path
-                    }
-                }
-            }
-        };
+        // Generate temporary .m3u playlist in OS temp directory
+        let m3u_path = std::env::temp_dir().join(format!("prism_preview_{}.m3u", id));
+        let m3u_content = format!("#EXTM3U\n#EXTINF:-1,{}\n{}\n", filename, stream_url);
+        std::fs::write(&m3u_path, m3u_content).map_err(err)?;
 
         return app
             .opener()
-            .open_path(target_to_open.to_string_lossy(), None::<&str>)
+            .open_path(m3u_path.to_string_lossy(), None::<&str>)
             .map_err(err);
     }
 

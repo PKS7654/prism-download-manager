@@ -10,6 +10,7 @@ mod sound;
 mod tray;
 mod updates;
 mod windows;
+mod preview_server;
 
 use prism_core::events::{CaptureSource, CoreEvent};
 use prism_core::manager::{Core, CoreOptions, NewItem};
@@ -82,6 +83,7 @@ fn main() {
             let core = tauri::async_runtime::block_on(Core::start(CoreOptions::default()))
                 .map_err(|e| format!("Prism failed to start: {e:#}"))?;
             app.manage(core.clone());
+            preview_server::init(core.clone());
             tray::create(&handle)?;
             #[cfg(target_os = "macos")]
             mac_menu(&handle)?;

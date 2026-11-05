@@ -267,13 +267,15 @@ impl SegmentTable {
         allow_race: bool,
     ) -> Option<(Assignment, AcquireKind)> {
         let mut g = self.lock();
-        // 1. Unowned unfinished segment with the largest remainder.
+        // 1. Unowned unfinished segment with the earliest start offset.
+        // Sequential head-priority: prioritize earlier parts of the file so media preview
+        // and streaming are immediately contiguous.
         if let Some((i, _)) = g
             .segs
             .iter()
             .enumerate()
             .filter(|(_, s)| s.owner.is_none() && !s.done())
-            .max_by_key(|(_, s)| s.remaining())
+            .min_by_key(|(_, s)| s.start)
         {
             let s = &mut g.segs[i];
             s.owner = Some(worker);
@@ -291,8 +293,12 @@ impl SegmentTable {
         if !g.splittable {
             return None;
         }
-        // 2. Split the largest owned remainder.
+        // 2. Split owned segment with the earliest start offset that has sufficient remainder.
+        // Bounding chunk splits to a sequential rolling window concentrates all active connections
+        // on the earliest unfinished bytes of the file in parallel waves, rather than scattering
+        // connections across an 11+ GB file.
         let min_split = g.min_split;
+        const MAX_SPLIT_CHUNK: u64 = 64 * 1024 * 1024; // 64 MiB sequential chunk window
         if let Some((i, _)) = g
             .segs
             .iter()
@@ -300,19 +306,22 @@ impl SegmentTable {
             .filter(|(_, s)| {
                 s.owner.is_some() && s.racer.is_none() && s.remaining() >= 2 * min_split
             })
-            .max_by_key(|(_, s)| s.remaining())
+            .min_by_key(|(_, s)| s.start)
         {
             let (pos, end, req_end) = {
                 let s = &g.segs[i];
                 (s.pos, s.end, s.req_end)
             };
-            let mid = align_down(pos + (end - pos) / 2);
+            let chunk = ((end - pos) / 2).min(MAX_SPLIT_CHUNK).max(min_split);
+            let target_split = align_down(pos + chunk);
             let hint = align_up(req_end);
             // Prefer splitting behind the victim's in-flight request (keeps its socket alive).
-            let at = if hint > mid && hint < end && end - hint >= min_split {
+            let at = if hint >= target_split && hint < end && end - hint >= min_split {
                 hint
+            } else if target_split > pos && target_split < end && end - target_split >= min_split {
+                target_split
             } else {
-                mid
+                align_down(pos + (end - pos) / 2)
             };
             if at > pos && at < end {
                 g.segs[i].end = at;
