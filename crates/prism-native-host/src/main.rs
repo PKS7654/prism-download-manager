@@ -18,15 +18,6 @@ fn print_json<T: serde::Serialize>(v: &T) {
 }
 
 fn main() -> ExitCode {
-    #[cfg(windows)]
-    unsafe {
-        // If run manually from cmd/PowerShell, attach to the caller's console to show output.
-        // If started by browser (Chrome/Edge/Firefox), there is no console, so no cmd window pops up!
-        windows_sys::Win32::System::Console::AttachConsole(
-            windows_sys::Win32::System::Console::ATTACH_PARENT_PROCESS,
-        );
-    }
-
     let argv: Vec<String> = std::env::args_os()
         .skip(1)
         .map(|a| a.to_string_lossy().into_owned())
