@@ -1,7 +1,7 @@
 //! `prism-native-host` — started by browsers through native messaging, or by
 //! the installer/app with `register` / `unregister` / `status`.
 
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![windows_subsystem = "windows"]
 
 use prism_native_host::args::{self, Invocation};
 use prism_native_host::registration::{self, Locations, RegisterOptions};

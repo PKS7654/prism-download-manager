@@ -88,27 +88,30 @@ export default function BatchWindow({ id }: { id: string }) {
           <span className="r">{t("Size")}</span>
         </div>
         <div className="gtable__rows">
-          {shown.map((e) => (
-            <div
-              key={e.url}
-              className={`grow2${checked.has(e.url) ? "" : " is-off"}`}
-              onClick={() => {
-                const n = new Set(checked);
-                if (n.has(e.url)) n.delete(e.url);
-                else n.add(e.url);
-                setChecked(n);
-              }}
-            >
-              <Checkbox checked={checked.has(e.url)} label={t("Select {name}", { name: e.fileName })} onChange={() => undefined} />
-              <FileTile item={{ fileName: e.fileName || e.url, kind: "http", category: e.category, media: null }} size={26} />
-              <span className="nm">
-                <b>{e.fileName || e.url.split("/").pop()}</b>
-                <small>{e.text ? `${e.text} · ` : ""}{hostOf(e.url)}</small>
-              </span>
-              <span className="dim">{categories.find((c) => c.id === e.category)?.name ?? "—"}</span>
-              <span className="r tnum">{formatBytes(e.size)}</span>
-            </div>
-          ))}
+          {shown.map((e) => {
+            const toggle = () => {
+              const n = new Set(checked);
+              if (n.has(e.url)) n.delete(e.url);
+              else n.add(e.url);
+              setChecked(n);
+            };
+            return (
+              <div
+                key={e.url}
+                className={`grow2${checked.has(e.url) ? "" : " is-off"}`}
+                onClick={toggle}
+              >
+                <Checkbox checked={checked.has(e.url)} label={t("Select {name}", { name: e.fileName })} onChange={toggle} />
+                <FileTile item={{ fileName: e.fileName || e.url, kind: "http", category: e.category, media: null }} size={26} />
+                <span className="nm">
+                  <b>{e.fileName || e.url.split("/").pop()}</b>
+                  <small>{e.text ? `${e.text} · ` : ""}{hostOf(e.url)}</small>
+                </span>
+                <span className="dim">{categories.find((c) => c.id === e.category)?.name ?? "—"}</span>
+                <span className="r tnum">{formatBytes(e.size)}</span>
+              </div>
+            );
+          })}
           {!shown.length && <p className="wempty">{batch ? t("No links match the filter.") : t("Loading…")}</p>}
         </div>
       </div>
@@ -146,6 +149,9 @@ export default function BatchWindow({ id }: { id: string }) {
             <Icon name="chevron-down" size={13} strokeWidth={2.2} />
           </button>
         </div>
+        <button type="button" className="btn btn--ghost" onClick={() => void win.close()}>
+          {t("Cancel")}
+        </button>
         <button type="button" className="btn btn--primary" disabled={!sel.length || busy} onClick={() => confirm({ type: "now" })}>
           <Icon name="download" size={15} /> {t("Download {number}", { number: sel.length })}
         </button>

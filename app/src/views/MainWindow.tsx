@@ -89,10 +89,14 @@ export function MainWindow() {
     await handleDrop(e.dataTransfer);
   };
 
+  const effectiveBottomH = detailsOpen
+    ? Math.min(bottomHeight, Math.max(140, (typeof window !== "undefined" ? window.innerHeight : 820) - 340))
+    : 0;
+
   return (
     <div className={compact ? "win canvas win--compact" : "win canvas"} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
       {!compact && <Sidebar />}
-      <main className="sheet" style={{ ["--bottom-h" as string]: detailsOpen ? `${bottomHeight}px` : "0px" }}>
+      <main className="sheet" style={{ ["--bottom-h" as string]: `${effectiveBottomH}px` }}>
         <Toolbar />
         <TitleRow />
         <div className="banner-stack">

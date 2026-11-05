@@ -34,10 +34,16 @@ fn spec(kind: &str) -> Spec {
         min_size: None,
     };
     match kind {
-        "capture" => s(600.0, 440.0, true, false, "Download File"),
-        "batch" => s(820.0, 600.0, true, true, "Download Links"),
-        "video" => s(680.0, 640.0, true, true, "Download Video"),
-        "complete" => s(500.0, 300.0, true, false, "Download Complete"),
+        "capture" => s(600.0, 480.0, true, false, "Download File"),
+        "batch" => Spec {
+            min_size: Some((640.0, 460.0)),
+            ..s(820.0, 600.0, true, true, "Download Links")
+        },
+        "video" => Spec {
+            min_size: Some((580.0, 480.0)),
+            ..s(680.0, 640.0, true, true, "Download Video")
+        },
+        "complete" => s(560.0, 330.0, true, false, "Download Complete"),
         "details" => Spec {
             min_size: Some((640.0, 480.0)),
             ..s(760.0, 600.0, false, true, "Download Details")
@@ -48,7 +54,10 @@ fn spec(kind: &str) -> Spec {
             min_size: Some((640.0, 340.0)),
             ..s(700.0, 420.0, false, true, "Downloading")
         },
-        "torrent" => s(680.0, 600.0, true, true, "Add Torrent"),
+        "torrent" => Spec {
+            min_size: Some((580.0, 440.0)),
+            ..s(680.0, 600.0, true, true, "Add Torrent")
+        },
         "model" => Spec {
             min_size: Some((600.0, 520.0)),
             ..s(760.0, 680.0, false, true, "Download Model")
@@ -58,8 +67,11 @@ fn spec(kind: &str) -> Spec {
             min_size: Some((560.0, 540.0)),
             ..s(640.0, 600.0, false, true, "Tools")
         },
-        "addurl" => s(600.0, 300.0, true, false, "Add URL"),
-        "mini" => s(360.0, 220.0, true, false, "Prism Mini"),
+        "addurl" => s(600.0, 340.0, true, false, "Add URL"),
+        "mini" => Spec {
+            min_size: Some((320.0, 70.0)),
+            ..s(360.0, 220.0, true, false, "Prism Mini")
+        },
         "dropzone" => s(112.0, 112.0, true, false, "Prism Drop Zone"),
         _ => s(720.0, 560.0, false, true, "Prism"),
     }

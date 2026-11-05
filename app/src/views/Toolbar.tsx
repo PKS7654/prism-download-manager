@@ -41,18 +41,19 @@ export function Toolbar() {
       <IconButton icon="start-queue" label={queue ? t("Start {name}", { name: displayName(queue.name) }) : t("Start queue")} disabled={!queue || queue.running} onClick={() => queue && void attempt(api.startQueue(queue.id))} />
       <IconButton icon="stop-queue" label={queue ? t("Stop {name}", { name: displayName(queue.name) }) : t("Stop queue")} disabled={!queue || !queue.running} onClick={() => queue && void attempt(api.stopQueue(queue.id))} />
       <IconButton icon="scheduler" label={t("Scheduler")} onClick={() => ui().openSheet({ kind: "scheduler", queueId: queue?.id })} />
-      <span className="tb-sep" />
-      <IconButton icon="grabber" label={t("Site grabber")} onClick={() => ui().openSheet({ kind: "grabber" })} />
-      <IconButton icon="batch" label={t("Batch download")} onClick={() => ui().openDialog({ kind: "batch" })} />
-      <IconButton icon="model" label={t("Download a model from Hugging Face")} onClick={() => void attempt(api.openWindow("model"))} />
+      <span className="tb-sep tb-sep--tools" />
+      <IconButton className="tb-btn--grabber" icon="grabber" label={t("Site grabber")} onClick={() => ui().openSheet({ kind: "grabber" })} />
+      <IconButton className="tb-btn--batch" icon="batch" label={t("Batch download")} onClick={() => ui().openDialog({ kind: "batch" })} />
+      <IconButton className="tb-btn--model" icon="model" label={t("Download a model from Hugging Face")} onClick={() => void attempt(api.openWindow("model"))} />
       <IconButton
+        className="tb-btn--limiter"
         icon="speed-limiter"
         label={limiter ? t("Speed limiter on · {limit}", { limit: `${formatBytes(limit)}/s` }) : t("Speed limiter off")}
         kbd="Ctrl L"
         pressed={limiter}
         onClick={() => void actions.toggleLimiter()}
       />
-      <IconButton icon="mini-mode" label={t("Mini window")} kbd="Ctrl Shift M" onClick={actions.toggleMini} />
+      <IconButton className="tb-btn--mini" icon="mini-mode" label={t("Mini window")} kbd="Ctrl Shift M" onClick={actions.toggleMini} />
       <span className="spacer" data-tauri-drag-region />
       <SearchBox />
       <IconButton icon="options" label={t("Settings")} kbd="Ctrl ," onClick={() => ui().openSheet({ kind: "settings" })} />

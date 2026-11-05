@@ -33,40 +33,42 @@ export default function CompleteWindow({ id }: { id: string }) {
 
   return (
     <WindowFrame kind="complete" title={t("Download complete")} onClose={() => void close()} className="complete">
-      <div className="complete__top">
-        <div className="burst">
-          <span>
-            <Icon name="check" size={28} strokeWidth={2} />
-          </span>
-        </div>
-        <div className="complete__txt">
-          <h2 className="ellipsis" title={item?.fileName}>
-            {item?.fileName ?? t("Download complete")}
-          </h2>
-          <div className="meta tnum">
-            {formatBytes(size)}
-            {took && took > 0 ? ` · ${t("finished in {duration} · average {speed}", { duration: formatDuration(took), speed: formatSpeed(size / took) })}` : ""}
+      <div className="wbody complete__body">
+        <div className="complete__top">
+          <div className="burst">
+            <span>
+              <Icon name="check" size={28} strokeWidth={2} />
+            </span>
+          </div>
+          <div className="complete__txt">
+            <h2 className="ellipsis" title={item?.fileName}>
+              {item?.fileName ?? t("Download complete")}
+            </h2>
+            <div className="meta tnum">
+              {formatBytes(size)}
+              {took && took > 0 ? ` · ${t("finished in {duration} · average {speed}", { duration: formatDuration(took), speed: formatSpeed(size / took) })}` : ""}
+            </div>
           </div>
         </div>
+        {item && (
+          <div className="complete__path">
+            <FileTile item={item} size={24} thumbWidth={36} />
+            <span className="t-mono ellipsis selectable" title={path}>
+              {path}
+            </span>
+          </div>
+        )}
+        {media && (
+          <div className="complete__tools">
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => void run(api.openTools({ tab: "convert", paths: [media] }), t("Could not open Tools"))}>
+              <Icon name="convert" size={14} /> {t("Convert")}
+            </button>
+            <button type="button" className="btn btn--ghost btn--sm" onClick={() => void run(api.openTools({ tab: "shrink", paths: [media] }), t("Could not open Tools"))}>
+              <Icon name="shrink" size={14} /> {t("Make smaller")}
+            </button>
+          </div>
+        )}
       </div>
-      {item && (
-        <div className="complete__path">
-          <FileTile item={item} size={24} thumbWidth={36} />
-          <span className="t-mono ellipsis selectable" title={path}>
-            {path}
-          </span>
-        </div>
-      )}
-      {media && (
-        <div className="complete__tools">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => void run(api.openTools({ tab: "convert", paths: [media] }), t("Could not open Tools"))}>
-            <Icon name="convert" size={14} /> {t("Convert")}
-          </button>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => void run(api.openTools({ tab: "shrink", paths: [media] }), t("Could not open Tools"))}>
-            <Icon name="shrink" size={14} /> {t("Make smaller")}
-          </button>
-        </div>
-      )}
       <footer className="dialog__footer">
         <Checkbox checked={dontShow} onChange={setDontShow}>
           {t("Don’t show again")}
@@ -86,6 +88,9 @@ export default function CompleteWindow({ id }: { id: string }) {
         </button>
         <button type="button" className="btn" disabled={!item} onClick={() => void run(api.revealItem(id), t("Could not open the folder"))}>
           <Icon name="folder-open" size={15} /> {t("Open folder")}
+        </button>
+        <button type="button" className="btn btn--ghost" onClick={() => void close()}>
+          {t("Close")}
         </button>
         <button type="button" className="btn btn--primary" autoFocus disabled={!item} onClick={() => void run(api.openItem(id), t("Could not open the file"))}>
           <Icon name="open-file" size={15} /> {t("Open")}

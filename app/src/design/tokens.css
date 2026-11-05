@@ -112,7 +112,7 @@
   --window-gutter: 8px;     /* gap between glass sidebar and content sheet */
   --table-header-h: 32px;
   --control-h-xs: 22px;
-  --control-h-sm: 26px;
+  --control-h-sm: 28px;
   --control-h: 30px;        /* default button / input height               */
   --control-h-lg: 36px;     /* dialog primary actions                       */
   --icon-xs: 14px;
@@ -258,6 +258,7 @@
   --success: #3dd68c;  --success-rgb: 61 214 140;
   --warning: #f5b544;  --warning-rgb: 245 181 68;
   --danger: #ff6b6b;   --danger-rgb: 255 107 107;
+  --danger-solid: #d32f2f; --danger-solid-rgb: 211 47 47;
   --info: #5cc8f0;     --info-rgb: 92 200 240;
   --neutral: #8a8fa0;  --neutral-rgb: 138 143 160;
 
@@ -367,6 +368,7 @@
   --success: #0a7d50;  --success-rgb: 10 125 80;
   --warning: #9a5800;  --warning-rgb: 154 88 0;
   --danger: #c42f35;   --danger-rgb: 196 47 53;
+  --danger-solid: #c42f35; --danger-solid-rgb: 196 47 53;
   --info: #0a70a0;     --info-rgb: 10 112 160;
   --neutral: #646979;  --neutral-rgb: 100 105 121;
 

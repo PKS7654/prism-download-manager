@@ -194,6 +194,9 @@ export default function DetailsWindow({ id, simple }: { id: string; simple?: boo
         <button type="button" className="btn" onClick={() => void attempt(api.revealItem(id), t("Could not open the folder"))}>
           <Icon name="folder-open" size={15} /> {t("Folder")}
         </button>
+        <button type="button" className="btn btn--ghost" onClick={() => void win.close()}>
+          {t("Close")}
+        </button>
         {status === "completed" ? (
           <button type="button" className="btn btn--primary" onClick={() => void attempt(api.openItem(id), t("Could not open the file"))}>
             <Icon name="open-file" size={15} /> {t("Open")}

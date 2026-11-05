@@ -6,15 +6,16 @@ import { win } from "../lib/win";
 
 /** Preview sizes mirror `spec()` in src-tauri/src/windows.rs (used only in the browser preview). */
 export const WINDOW_SIZES: Record<string, [number, number]> = {
-  capture: [600, 440],
+  capture: [600, 480],
   batch: [820, 600],
   video: [680, 640],
-  complete: [500, 300],
+  complete: [560, 330],
   details: [760, 600],
+  progress: [700, 420],
   torrent: [680, 600],
   model: [760, 680],
   tools: [640, 600],
-  addurl: [600, 300],
+  addurl: [600, 340],
   mini: [360, 220],
   dropzone: [112, 112],
 };
