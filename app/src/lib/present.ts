@@ -210,3 +210,65 @@ export function isPlayable(item?: Pick<DownloadItem, "fileName" | "kind" | "cate
   return PLAYABLE_EXTENSIONS.test(item.fileName);
 }
 
+export interface PreviewStatus {
+  ready: boolean;
+  pct: number;
+  waitSecs: number;
+  label: string;
+  tooltip: string;
+}
+
+export function getPreviewStatus(item: DownloadItem, progress?: Progress | null): PreviewStatus {
+  if (item.status === "completed") {
+    return {
+      ready: true,
+      pct: 100,
+      waitSecs: 0,
+      label: t("Play"),
+      tooltip: t("Play"),
+    };
+  }
+
+  const fileSize = (progress?.size ?? item.size) || 0;
+  const speed = progress?.speed || 0;
+  const downloaded = progress?.downloaded ?? item.downloaded ?? 0;
+
+  const duration = item.media?.duration || (fileSize > 0 ? fileSize / 350000 : 0);
+  const bitrate = duration > 0 && fileSize > 0 ? fileSize / duration : 350000;
+
+  let minBufferNeeded: number;
+  if (fileSize > 0) {
+    if (speed >= bitrate) {
+      minBufferNeeded = Math.max(bitrate * 15, 15 * 1024 * 1024);
+    } else {
+      const deficit = fileSize * (1 - (speed / bitrate));
+      const safety = bitrate * 15;
+      minBufferNeeded = Math.min(fileSize * 0.95, Math.max(15 * 1024 * 1024, deficit + safety));
+    }
+  } else {
+    minBufferNeeded = 15 * 1024 * 1024;
+  }
+
+  const ready = downloaded >= minBufferNeeded;
+  const pct = Math.min(100, Math.round((downloaded / minBufferNeeded) * 100));
+  const remainingBytes = Math.max(0, minBufferNeeded - downloaded);
+  const waitSecs = speed > 0 ? Math.ceil(remainingBytes / speed) : 0;
+
+  let tooltip: string;
+  if (ready) {
+    tooltip = t("Play (Smooth playback ready)");
+  } else if (waitSecs > 0) {
+    tooltip = t("Buffering: {pct}% ready (~{secs}s left)", { pct, secs: waitSecs });
+  } else {
+    tooltip = t("Buffering: {pct}% ready", { pct });
+  }
+
+  return {
+    ready,
+    pct,
+    waitSecs,
+    label: t("Play"),
+    tooltip,
+  };
+}
+

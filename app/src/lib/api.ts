@@ -250,7 +250,7 @@ export const api = {
   updateItem: (id: string, patch: ItemPatch) => invoke<DownloadItem>("update_item", { id, patch }),
   itemDetails: (id: string) => invoke<ItemDetails | null>("item_details", { id }),
   openItem: (id: string) => invoke<void>("open_item", { id }),
-  previewItem: (id: string) => invoke<void>("preview_item", { id }),
+  previewItem: (id: string, force = false) => invoke<void>("preview_item", { id, force }),
   revealItem: (id: string) => invoke<void>("reveal_item", { id }),
   /** Shows a file selected in its folder. */
   openPath: (path: string) => invoke<void>("open_path", { path }),

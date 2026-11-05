@@ -9,7 +9,7 @@ import { actions } from "../lib/actions";
 import { type ColumnDef, gridTemplate, minRowWidth, resolveColumns } from "../lib/columns";
 import { formatBytes, formatDate, formatDuration, formatSpeed } from "../lib/format";
 import { t } from "../lib/i18n";
-import { bytesLine, canPause, formatPct, isPlayable, metaLine, progressOf, statusView } from "../lib/present";
+import { bytesLine, canPause, formatPct, getPreviewStatus, isPlayable, metaLine, progressOf, statusView } from "../lib/present";
 import { clickSelect, type MoveKey, moveSelect } from "../lib/selection";
 import { useApp } from "../lib/store";
 import { useUi } from "../lib/ui";
@@ -333,7 +333,7 @@ const Row = memo(function Row({ id, index, top, cols, selected, fresh, compact, 
       </div>
       <div className="row-actions" onMouseDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
         {isPlayable(item) && (
-          <IconButton icon="play" label={t("Play")} size={16} onClick={() => actions.preview(id)} />
+          <IconButton icon="play" label={getPreviewStatus(item, progress).tooltip} size={16} onClick={() => actions.preview(id)} />
         )}
         {item.status === "completed" ? (
           <IconButton icon="open-file" label={t("Open")} size={16} onClick={() => actions.open(id)} />

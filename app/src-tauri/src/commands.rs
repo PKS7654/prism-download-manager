@@ -478,7 +478,12 @@ pub async fn open_item(core: State<'_, Core>, app: AppHandle, id: String) -> Cmd
 }
 
 #[tauri::command]
-pub async fn preview_item(core: State<'_, Core>, app: AppHandle, id: String) -> CmdResult<()> {
+pub async fn preview_item(
+    core: State<'_, Core>,
+    app: AppHandle,
+    id: String,
+    force: Option<bool>,
+) -> CmdResult<()> {
     let item = core.item(&id).ok_or("unknown item")?;
     let path = item.path();
 
@@ -501,8 +506,91 @@ pub async fn preview_item(core: State<'_, Core>, app: AppHandle, id: String) -> 
             return Err("Download has not received enough data yet to preview. Please wait a few moments.".into());
         }
 
-        // On Windows (and elsewhere), opening .prismpart directly won't trigger the system media player.
-        // We create a hard link with the proper media extension in the same directory (shares disk clusters, 0 I/O).
+        // Calculate contiguous downloaded bytes from offset 0
+        let details = core.item_details(&id);
+        let mut contiguous_head: u64 = 0;
+        if let Some(ref d) = details {
+            let mut sorted_segs = d.segments.clone();
+            sorted_segs.sort_by_key(|s| s.start);
+            for s in sorted_segs {
+                if s.start <= contiguous_head {
+                    contiguous_head = contiguous_head.max(s.pos);
+                } else {
+                    break;
+                }
+            }
+        }
+        if contiguous_head == 0 {
+            contiguous_head = item.downloaded;
+        }
+
+        let file_size = item.size.unwrap_or(0);
+        let speed = details
+            .as_ref()
+            .and_then(|d| d.progress.as_ref())
+            .map(|p| p.speed)
+            .unwrap_or(0);
+
+        let duration_secs = item
+            .media
+            .as_ref()
+            .and_then(|m| m.duration)
+            .map(|d| d as f64)
+            .unwrap_or_else(|| {
+                if file_size > 0 {
+                    (file_size as f64 / 350_000.0).clamp(60.0, 7200.0)
+                } else {
+                    600.0
+                }
+            });
+
+        let bitrate = if duration_secs > 0.0 && file_size > 0 {
+            file_size as f64 / duration_secs
+        } else {
+            350_000.0 // 350 KB/s ~ 2.8 Mbps
+        };
+
+        // Minimum required contiguous buffer to prevent playback stall
+        let min_required: u64 = if file_size > 0 {
+            if speed as f64 >= bitrate {
+                // Speed exceeds bitrate: only need 15s jitter buffer (or min 15 MB)
+                (bitrate * 15.0).max(15.0 * 1024.0 * 1024.0) as u64
+            } else {
+                // Speed is slower than bitrate: need to buffer deficit before playing
+                let deficit = file_size as f64 * (1.0 - (speed as f64 / bitrate));
+                let safety = bitrate * 15.0;
+                let needed = (deficit + safety).min(file_size as f64 * 0.95);
+                needed.max(15.0 * 1024.0 * 1024.0) as u64
+            }
+        } else {
+            15 * 1024 * 1024
+        };
+
+        let force_play = force.unwrap_or(false);
+        if !force_play && contiguous_head < min_required {
+            let buffered_mb = contiguous_head as f64 / (1024.0 * 1024.0);
+            let needed_mb = min_required as f64 / (1024.0 * 1024.0);
+            let wait_secs = if speed > 0 {
+                min_required.saturating_sub(contiguous_head) / speed
+            } else {
+                0
+            };
+            let pct = ((contiguous_head as f64 / min_required as f64) * 100.0).min(99.0) as u64;
+
+            if wait_secs > 0 {
+                return Err(format!(
+                    "Buffering: {}% ({:.1} MB / {:.1} MB ready, ~{}s left). Click Play again to preview early.",
+                    pct, buffered_mb, needed_mb, wait_secs
+                ));
+            } else {
+                return Err(format!(
+                    "Buffering: {}% ({:.1} MB / {:.1} MB ready). Click Play again to preview early.",
+                    pct, buffered_mb, needed_mb
+                ));
+            }
+        }
+
+        // Buffer is sufficient (or user force-played): create hard link and launch player
         let file_stem = path.file_stem().unwrap_or_default().to_string_lossy();
         let file_ext = path.extension().unwrap_or_default().to_string_lossy();
         let preview_name = if file_ext.is_empty() {
