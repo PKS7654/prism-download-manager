@@ -72,12 +72,12 @@ export function StatusBar() {
         </span>
       )}
       <span className="spacer" />
-      <button type="button" className="sb sb--btn" onClick={() => void actions.toggleLimiter()} data-tip={t("Toggle speed limiter")} data-kbd="Ctrl L">
+      <button type="button" className="sb sb--btn sb--limiter" onClick={() => void actions.toggleLimiter()} data-tip={t("Toggle speed limiter")} data-kbd="Ctrl L">
         <Icon name="speed-limiter" size={12} strokeWidth={2} />
         {tr("Limit {value}", { value: <b>{limiter ? `${formatBytes(limit)}/s` : t("Off")}</b> })}
       </button>
       {free != null && (
-        <span className="sb" data-tip={dir}>
+        <span className="sb sb--free" data-tip={dir}>
           <Icon name="hard-drive" size={12} strokeWidth={2} />
           {tr("{size} free", { size: <b>{formatBytes(free)}</b> })}
         </span>
@@ -88,7 +88,7 @@ export function StatusBar() {
       </button>
       <button
         type="button"
-        className="sb sb--btn"
+        className="sb sb--btn sb--details-toggle"
         aria-label={bottomOpen ? t("Hide details pane") : t("Show details pane")}
         data-tip={bottomOpen ? t("Hide details pane") : t("Show details pane")}
         onClick={() => useUi.getState().setBottom({ bottomOpen: !bottomOpen })}

@@ -99,7 +99,7 @@ export function Toolbar() {
       <IconButton icon="resume" label={t("Resume")} kbd="Space" disabled={!anyResumable} onClick={() => actions.resume(selection)} />
       <IconButton icon="pause" label={t("Pause")} kbd="Space" disabled={!anyPausable} onClick={() => actions.pause(selection)} />
       <IconButton className="tb-btn--stop-all" icon="stop-all" label={t("Stop all")} onClick={actions.pauseAll} />
-      <span className="tb-sep" />
+      <span className="tb-sep tb-sep--playback" />
       <IconButton icon="delete" label={t("Delete")} kbd="Del" disabled={!selection.length} onClick={() => actions.requestDelete(selection)} />
       <IconButton className="tb-btn--del-completed" icon="delete-completed" label={t("Remove completed from the list")} disabled={!hasFinished} onClick={() => void attempt(api.removeCompleted(), t("Could not remove completed downloads"))} />
       <span className="tb-sep tb-sep--queue" />
@@ -146,7 +146,7 @@ function SearchBox() {
       <input
         ref={ref}
         value={search}
-        placeholder={t("Search downloads")}
+        placeholder={t("Search")}
         aria-label={t("Search downloads")}
         onChange={(e) => useApp.getState().setSearch(e.target.value)}
         onKeyDown={(e) => {

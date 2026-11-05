@@ -146,6 +146,7 @@ function useGlobalShortcuts() {
       else if (isTyping(e.target)) handled = false;
       else if (ctrl && k === "a") useApp.getState().select(listIds(useApp.getState(), ui.filter));
       else if (e.key === "Delete" && sel.length) actions.requestDelete(sel, e.shiftKey);
+      else if (e.code === "Space" && sel.length) actions.toggle(sel);
       else handled = false;
       if (handled) e.preventDefault();
     };
@@ -160,7 +161,13 @@ function useCoreNotifications() {
     let off: (() => void) | undefined;
     void import("../lib/api").then(({ onCoreEvent }) =>
       onCoreEvent((e) => {
-        if (e.type === "failed") toast(t("Download failed"), { kind: "error", body: `${e.payload.fileName}${e.payload.error ? ` — ${e.payload.error}` : ""}` });
+        if (e.type === "failed") {
+          toast(t("Download failed"), {
+            kind: "error",
+            body: `${e.payload.fileName}${e.payload.error ? ` — ${e.payload.error}` : ""}`,
+            action: { label: t("Retry"), run: () => actions.resume([e.payload.id]) },
+          });
+        }
         else if (e.type === "queueFinished") toast(t("{name} finished", { name: e.payload.name }), { kind: "success" });
         else if (e.type === "notify") toast(e.payload.title, { body: e.payload.body });
         else if (e.type === "clipboardUrls" && e.payload.length)

@@ -233,7 +233,7 @@ function SpeedCard() {
     const s = formatSpeed(now);
     if (s === "—") return ["0", "B/s"];
     const i = s.indexOf(" ");
-    return [s.slice(0, i), s.slice(i + 1)];
+    return i === -1 ? [s, ""] : [s.slice(0, i), s.slice(i + 1)];
   }, [now]);
 
   return (
